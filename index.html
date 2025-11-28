@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technical Governance Report</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <style>
+        :root {
+            --primary-blue: #007cc3;
+            --header-text: #ffffff;
+            --row-highlight: #e9f5fb;
+        }
+
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .main-container {
+            background: white;
+            box-shadow: 0 0 15px rgba(0,0,0,0.05);
+            padding: 30px;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            min-height: 80vh;
+        }
+
+        /* Header Styling */
+        h1 { color: var(--primary-blue); font-weight: 700; margin-bottom: 0; }
+        .report-meta { color: #6c757d; font-size: 0.9rem; margin-top: 5px; }
+        
+        /* This date is hidden initially, visible only after load/print */
+        #printDateContainer { display: none; margin-top: 5px; color: #333; font-weight: bold; }
+
+        /* Upload Section */
+        .upload-card {
+            background-color: var(--row-highlight);
+            border: 2px dashed var(--primary-blue);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        /* Table Styling */
+        .table-container {
+            margin-top: 20px;
+            display: none; /* Hidden until data loaded */
+        }
+
+        table { font-size: 0.9rem; }
+        
+        thead th {
+            background-color: #002b5c !important;
+            color: white !important;
+            vertical-align: middle;
+            border-bottom: none;
+        }
+
+        /* Custom Categories */
+        .category-header {
+            background-color: var(--primary-blue) !important;
+            color: white !important;
+            text-align: center;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 1.1em;
+        }
+
+        .subcategory-row {
+            background-color: var(--row-highlight) !important;
+            color: #005a8e !important;
+            font-weight: bold;
+        }
+
+        /* Textareas */
+        textarea.form-control {
+            font-size: 0.9rem;
+            min-height: 60px;
+            resize: vertical;
+            border-color: #dee2e6;
+        }
+        textarea.form-control:focus {
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 0.25rem rgba(0, 124, 195, 0.25);
+        }
+
+        /* Evidence List */
+        ul.evidence-list { margin: 0; padding-left: 20px; }
+        ul.evidence-list li { margin-bottom: 2px; }
+
+        /* --- PRINT STYLES --- */
+        @media print {
+            @page { size: landscape; margin: 0.5cm; }
+            body { background: white; margin: 0; }
+            
+            .main-container {
+                box-shadow: none;
+                margin: 0;
+                padding: 0;
+                width: 100% !important;
+                max-width: 100% !important;
+            }
+
+            /* Hide interactive elements */
+            .upload-section-wrapper, .btn-print-wrapper { display: none !important; }
+            
+            /* Show Date */
+            #printDateContainer { display: block !important; }
+
+            /* Table Formatting for Print */
+            .table-responsive { overflow: visible !important; }
+            table { width: 100% !important; table-layout: fixed; }
+            
+            /* Ensure colors print correctly */
+            thead th { background-color: #002b5c !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .category-header { background-color: var(--primary-blue) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .subcategory-row { background-color: #e9f5fb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+            /* Clean up textareas */
+            textarea {
+                border: none !important;
+                resize: none !important;
+                overflow: hidden !important;
+                padding: 0 !important;
+                background: transparent !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container main-container">
+    
+    <div class="text-center mb-4">
+        <h1>Technical Governance Compliance Report</h1>
+        <div class="report-meta">Checklist & Assessment Tool</div>
+        <div id="printDateContainer">
+            Report Date: <span id="generatedDate"></span>
+        </div>
+    </div>
+
+    <div class="row justify-content-center upload-section-wrapper">
+        <div class="col-md-8">
+            <div class="upload-card mb-3">
+                <div class="mb-3">
+                    <label for="fileInput" class="form-label fw-bold text-primary">Upload Excel Checklist</label>
+                    <input class="form-control" type="file" id="fileInput" accept=".xlsx, .xls">
+                </div>
+                <div id="statusMessage" class="fw-bold text-muted small">Waiting for file...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-3 btn-print-wrapper" id="downloadBtnContainer" style="display:none;">
+        <div class="col text-end">
+            <button class="btn btn-success btn-lg" onclick="prepareAndPrint()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-pdf-fill me-2" viewBox="0 0 16 16">
+                    <path d="M5.523 12.424c.14-.082.293-.162.459-.238a7.878 7.878 0 0 1-.45.606c-.28.337-.498.516-.635.572a.266.266 0 0 1-.035.012.282.282 0 0 1-.026-.044c-.056-.11-.054-.216.04-.36.106-.165.319-.354.647-.548zm2.455-1.647c-.119.025-.237.05-.356.078a21.148 21.148 0 0 0 .5-1.05 12.045 12.045 0 0 0 .51.858c-.217.032-.436.07-.654.114zm2.525.939a3.881 3.881 0 0 1-.435-.41c.228.005.434.022.612.054.317.057.466.147.518.209a.095.095 0 0 1 .026.064.436.436 0 0 1-.72.083z"/>
+                    <path d="M4 0h5.293A1 1 0 0 1 10 .293L13.707 4a1 1 0 0 1 .293.707V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2zm5.5 1.5v2a1 1 0 0 0 1 1h2l-3-3zM4.165 13.668c.09.18.23.343.438.419.207.075.412.04.58-.03.318-.13.635-.436.926-.786.333-.401.683-.927 1.021-1.51a11.651 11.651 0 0 1 1.997-.406c.342.38.637.716.867.98a7.2 7.2 0 0 1 .244.575c.092.232.121.461.081.637-.082.358-.377.654-.707.745-.527.145-1.081-.02-1.616-.484a14.949 14.949 0 0 1-1.22-1.625 10.324 10.324 0 0 1-1.898-1.14c-.404-.423-.744-.882-.959-1.311-.271-.541-.297-1.157-.068-1.465.174-.23.493-.246.786-.063.29.18.44.492.51.796.094.414.07.873-.046 1.407-.058.261-.137.545-.226.824zm.052-3.513c.136.216.29.434.453.648.515-.206 1.09-.368 1.638-.476a12.98 12.98 0 0 0-.58-.932 4.14 4.14 0 0 0-1.511 7.6z"/>
+                </svg>
+                Download Report (PDF)
+            </button>
+        </div>
+    </div>
+
+    <div class="table-responsive table-container" id="checklistTableWrapper">
+        <table class="table table-bordered align-middle">
+            <thead>
+                <tr>
+                    <th style="width: 5%" class="text-center">Sr</th>
+                    <th style="width: 35%">Governance Control</th>
+                    <th style="width: 25%">Evidence</th>
+                    <th style="width: 17%">Response</th>
+                    <th style="width: 18%">Remarks</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    document.getElementById('fileInput').addEventListener('change', handleFile, false);
+
+    function handleFile(e) {
+        const file = e.target.files[0];
+        const statusMsg = document.getElementById('statusMessage');
+        const btnContainer = document.getElementById('downloadBtnContainer');
+        
+        if (!file) return;
+
+        statusMsg.textContent = "Processing file...";
+        statusMsg.className = "fw-bold text-primary small";
+        
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                
+                let targetSheetData = null;
+
+                // Smart Sheet Detection
+                for (let i = 0; i < workbook.SheetNames.length; i++) {
+                    const sheetName = workbook.SheetNames[i];
+                    const sheet = workbook.Sheets[sheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(sheet, {header: 1});
+
+                    const hasHeader = jsonData.slice(0, 10).some(row => 
+                        row.some(cell => cell && cell.toString().toLowerCase().includes("technical governance controls"))
+                    );
+
+                    if (hasHeader) {
+                        targetSheetData = jsonData;
+                        break;
+                    }
+                }
+
+                if (targetSheetData) {
+                    statusMsg.textContent = "Data loaded successfully!";
+                    statusMsg.className = "fw-bold text-success small";
+                    btnContainer.style.display = "flex";
+                    generateTable(targetSheetData);
+                } else {
+                    statusMsg.textContent = "Error: Could not find 'Technical Governance Controls' in the Excel file.";
+                    statusMsg.className = "fw-bold text-danger small";
+                }
+
+            } catch (err) {
+                console.error(err);
+                statusMsg.textContent = "Error reading file.";
+                statusMsg.className = "fw-bold text-danger small";
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function generateTable(data) {
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+        document.getElementById('checklistTableWrapper').style.display = 'block';
+
+        let headerRowIndex = -1;
+        // Locate header
+        for(let i=0; i<data.length; i++) {
+            if(data[i] && data[i].some(cell => cell && cell.toString().includes("Technical Governance Controls"))) {
+                headerRowIndex = i;
+                break;
+            }
+        }
+
+        // Process rows
+        for(let i = headerRowIndex + 1; i < data.length; i++) {
+            const row = data[i];
+            if(!row || row.length === 0) continue;
+            
+            const srNo = row[0] ? row[0].toString().trim() : "";
+            const control = row[1] ? row[1].toString().trim() : "";
+            const evidence = row[2] ? row[2].toString().trim() : "";
+
+            if (!srNo && !control && !evidence) continue;
+
+            const tr = document.createElement('tr');
+
+            // Category Header
+            if (srNo && !control && !evidence) {
+                tr.innerHTML = `<td colspan="5" class="category-header">${srNo}</td>`;
+            } 
+            // Subcategory Header
+            else if (!evidence && control) {
+                tr.className = 'subcategory-row';
+                tr.innerHTML = `<td class="text-center">${srNo}</td><td colspan="4">${control}</td>`;
+            } 
+            // Data Row
+            else {
+                let formattedEvidence = evidence;
+                if(evidence.includes('\n') || evidence.match(/\d\./)) {
+                    const items = evidence.split(/\n|(?=\d\.\s)/).filter(item => item.trim().length > 0);
+                    formattedEvidence = '<ul class="evidence-list">' + items.map(x => `<li>${x.replace(/^,/, '').trim()}</li>`).join('') + '</ul>';
+                }
+
+                tr.innerHTML = `
+                    <td class="text-center fw-bold">${srNo}</td>
+                    <td>${control}</td>
+                    <td>${formattedEvidence}</td>
+                    <td><textarea class="form-control" placeholder="Response..."></textarea></td>
+                    <td><textarea class="form-control" placeholder="Remarks..."></textarea></td>
+                `;
+            }
+            tbody.appendChild(tr);
+        }
+    }
+
+    function prepareAndPrint() {
+        // 1. Set Date
+        const now = new Date();
+        // Format: DD-MM-YYYY HH:MM AM/PM
+        const dateStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        document.getElementById('generatedDate').textContent = dateStr;
+        document.getElementById('printDateContainer').style.display = 'block';
+
+        // 2. Expand Textareas
+        const textareas = document.querySelectorAll('textarea');
+        textareas.forEach(el => {
+            el.style.height = 'auto'; 
+            el.style.height = (el.scrollHeight + 2) + 'px'; 
+        });
+
+        // 3. Print
+        window.print();
+    }
+</script>
+
+</body>
+</html>
