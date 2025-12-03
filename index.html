@@ -312,7 +312,7 @@
             <div class="row align-items-center">
                 <div class="col-md-3 text-center text-md-start mb-3 mb-md-0">
                     <img src="cyfylogo.png" alt="Cyfy Logo" class="logo-img">
-                    
+
                     <div id="printDateContainer">Report Date: <span id="generatedDate"></span></div>
                 </div>
 
@@ -335,7 +335,7 @@
                             </div>
                             <div class="col-md-6 col-lg-3">
                                 <div class="detail-label">Date</div>
-                                <input type="date" class="detail-input">
+                                <input type="date" class="detail-input" />
                             </div>
                         </div>
                     </div>
@@ -362,6 +362,12 @@
                 <div id="downloadBtnContainer" style="display:none; justify-content: flex-end;">
                     <button class="btn btn-success fw-bold px-4 py-2 shadow-sm" onclick="prepareAndPrint()">
                         ⬇ Download / Print PDF
+                    </button>
+                    <button class="btn btn-outline-primary fw-bold px-4 py-2 shadow-sm me-2" onclick="saveProgress()">
+                        💾 Save Draft
+                    </button>
+                    <button class="btn btn-outline-secondary fw-bold px-4 py-2 shadow-sm me-2" onclick="loadProgress()">
+                        📂 Load Draft
                     </button>
                 </div>
             </div>
@@ -414,7 +420,7 @@
     </div>
 
     <script>
-        const TARGET_FILENAME = "SEBI_CSCRF Pre-Requisite Sheet-Small RE checklist.xlsx";
+        const TARGET_FILENAME = "sebicscrf.xlsx";
 
         window.addEventListener('DOMContentLoaded', () => {
             autoLoadExcel();
@@ -566,6 +572,34 @@
             const checked = source.checked;
             document.querySelectorAll(`input.evidence-chk[value="${CSS.escape(val)}"]`)
                 .forEach(cb => cb.checked = checked);
+        }
+
+        function saveProgress() {
+            const data = {
+                inputs: Array.from(document.querySelectorAll('textarea, input[type="text"]')).map(el => el.value),
+                checkboxes: Array.from(document.querySelectorAll('input[type="checkbox"]')).map(el => el.checked),
+                selects: Array.from(document.querySelectorAll('select')).map(el => el.value)
+            };
+            localStorage.setItem('auditDraft', JSON.stringify(data));
+            alert("Draft saved to browser!");
+        }
+
+        function loadProgress() {
+            const data = JSON.parse(localStorage.getItem('auditDraft'));
+            if (!data) return alert("No saved draft found.");
+
+            const inputs = document.querySelectorAll('textarea, input[type="text"]');
+            const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+            const selects = document.querySelectorAll('select');
+
+            data.inputs.forEach((val, i) => { if (inputs[i]) inputs[i].value = val; });
+            data.checkboxes.forEach((val, i) => { if (checkboxes[i]) checkboxes[i].checked = val; });
+            data.selects.forEach((val, i) => {
+                if (selects[i]) {
+                    selects[i].value = val;
+                    calculateScore(selects[i]); // Re-trigger score calculation
+                }
+            });
         }
 
         // Prepare Print View
